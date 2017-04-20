@@ -1,51 +1,44 @@
-var mysql = require('mysql');
-var inquirer = require('inquirer');
-var Table = require('console.table');
-var colors = require('colors');
+var inquirer = require('inquirer'),
+    Table = require('cli-table'),
+    mysql = require('mysql');
 
-//establish connection
-  var connection = mysql.createConnection({
-    host    :'localHost',
-    user    :'root',
-    password  :'root',
-    port    :'8889',
-    database    :'Bamazon'
-  });
+var connection = mysql.createConnection({
+    host: 'localhost',
+    port: 8889,
 
-// Check to see if connection is successful
-connection.connect(function(err){
-  if(err) throw err;
-  console.log('Connected as id '.inverse + connection.threadId);
-  managerView();
+    // Your username
+    user: 'root',
+
+    // Your password
+    password: 'root',
+    database: 'Bamazon'
 });
 
-var displayTable = function (){
-		let query = 'SELECT * FROM products';
-		connection.query(query, function(error, res, field){
-               console.log('*****************************************************'.inverse.green);
-               console.table(res);
-               console.log('*****************************************************'.inverse.green);
-         }); 
-};
+// establishes connection with database and runs showProducts()
+connection.connect(function (err) {
+    if (err) throw err;
+    console.log('Hello Manager! Welcome to work. You\'re connected as id ' + connection.threadId + '.');
+    welcomeToWork();
+});
 
-var managerView = function () {
+var welcomeToWork = function () {
     // ask user what product and how many they would like to buy
-        inquirer.prompt([
+    inquirer.prompt([
         {
             type: 'list',
-            name: 'next',
+            name: 'toDo',
             message: 'What would you like to do?',
             choices: ['View Products for Sale', 'View Low Inventory', 'Add to Inventory', 'Add New Product', 'Disconnect']
         }
     ]).then(function (data) {
-        switch (data.next) {
+        switch (data.toDo) {
             case 'View Products for Sale':
                 console.log('Inventory in stock:');
-                displayInventory();
+                showAllInventory();
                 break;
             case 'View Low Inventory':
-                console.log('Here is are the products that need to be restocked:');
-                displayLowInventory();
+                console.log('Low Inventory:');
+                showLowInventory();
                 break;
             case 'Add to Inventory':
                 console.log('Add to Inventory:');
@@ -53,10 +46,10 @@ var managerView = function () {
                 break;
             case 'Add New Product':
                 console.log('Add New Product:');
-                addProduct();
+                newProduct();
                 break;
             case 'Disconnect':
-                console.log('You have signed out!');
+                console.log('Goodbye!');
                 connection.end();
                 break;
             default:
@@ -65,43 +58,61 @@ var managerView = function () {
     }); // end .then
 }; // end welcomeToWork()
 
-var displayInventory = function() {
-    let displayInvQuery = 'SELECT * FROM `products`';
-    connection.query(displayInvQuery, function (err, res) {
+var showAllInventory = function() {
+    var allInvQuery = 'SELECT * FROM `products`';
+    connection.query(allInvQuery, function (err, res) {
         if (err) throw err;
-        // displays table // 
-      console.log("************************************************************************.".inverse.green);
-      console.table(res);
-      console.log("************************************************************************.".inverse.green);
 
-        managerView();
-    }); // end connection.query // 
-}; // end showAllInventory // 
+        // initializes new cli-table
+        var table = new Table({
+            head: ['Product ID', 'Product Name', 'Price', 'Inventory']
+            , colWidths: [13, 40, 10, 12]
+        });
 
-var displayLowInventory = function() {
-    let lowInvQuery = 'SELECT * FROM `products` WHERE `stock_quantity` < 10';
+        for (var i = 0; i < res.length; i++) {
+            table.push(
+                [res[i].id, res[i].product_name, res[i].price, res[i].stock_quantity]
+            );
+        }
+
+        console.log(table.toString());
+
+        welcomeToWork();
+    }); // end connection.query
+}; // end showAllInventory()
+
+var showLowInventory = function() {
+    var lowInvQuery = 'SELECT * FROM `products` WHERE `stock_quantity` < 5';
     connection.query(lowInvQuery, function (err, res) {
-    	// displays table //
-      console.log("*********************************************************************************".inverse.red);
-      console.table(res);
-      console.log("*********************************************************************************".inverse.red);
         if (err) throw err;
-        if (res > 10) {
-            console.log('All Inventory is stocked to par.'.inverse.green);
-        } 
-        
-        managerView();
-    }); // end connection.query //
-}; // end displayLowInventory // 
+        if (res > 0) {
+        // initializes new cli-table
+        var table = new Table({
+            head: ['Product ID', 'Product Name', 'Price', 'Inventory']
+            , colWidths: [13, 40, 10, 12]
+        });
 
-var addInventory = function() {         
-	displayTable();
-    console.log('Restock Inventory'.inverse.yellow);
+        for (var i = 0; i < res.length; i++) {
+            table.push(
+                [res[i].id, res[i].product_name, res[i].price, res[i].stock_quantity]
+            );
+        }
+
+        console.log(table.toString());
+        } else {
+            console.log('There are at least 5 units in stock of all items at this time.');
+        }
+        welcomeToWork();
+    }); // end connection.query
+}; // end showLowInventory()
+
+var addInventory = function() {
+    console.log('add inventory');
     inquirer.prompt([
         {
             type: 'input',
             name: 'productId',
-            message: 'Enter product ID number of item to Restock'.inverse.yellow,
+            message: 'Enter product ID number of item to Restock',
             validate: function (value) {
                 var valid = !isNaN(parseFloat(value));
                 return valid || 'Please enter a number';
@@ -111,7 +122,7 @@ var addInventory = function() {
         {
             type: 'input',
             name: 'quantity',
-            message: 'Number to Restock'.inverse.yellow,
+            message: 'Number to Restock',
             validate: function (value) {
                 var valid = !isNaN(parseFloat(value));
                 return valid || 'Please enter a number';
@@ -134,42 +145,41 @@ var addInventory = function() {
                 }
             ], function (err, res) {
                 if (err) throw err;
-                console.log('Restock successful.'.inverse.green);
+                console.log('Restock successful.');
                 inquirer.prompt([
                     {
                         type: 'list',
-                        name: 'next',
-                        message: 'Please use the arrow to pick an option on the menu.',
+                        name: 'doNext',
+                        message: 'What would you like to do?',
                         choices: ['Add More Inventory', 'Main Menu', 'Disconnect']
                     }
                 ]).then(function (data) {
-                    switch (data.next) {
+                    switch (data.doNext) {
                         // if user selects to continue shopping, display products
                         case 'Add More Inventory':
                             addInventory();
                             break;
                         case 'Main Menu':
-                            managerView();
+                            welcomeToWork();
                             break;
                         case 'Disconnect':
-                            console.log('You have signed out!'.inverse.cyan);
+                            console.log('Goodbye!');
                             // end server connection
                             connection.end();
                             break;
                         default:
-                            console.log('Error!'.inverse.red);
-                    } // end switch // 
-                }); // end .then //
-            }); // end connection.query update // 
-        }); // end connection.query inv //
-    }); // end .then //
+                            console.log('something went wrong')
+                    } // end switch()
+                }); // end .then
+            }); // end connection.query update
+        }); // end connection.query addInvQuery
+    }); // end .then
 
-}; // end addInventory // 
+}; // end addInventory()
 
-var addProduct = function() {
-    console.log('Enter product information:'.inverse);
+var newProduct = function() {
+    console.log('Please enter new product details:');
     inquirer.prompt([
-
         {
             type: 'input',
             name: 'itemName',
@@ -178,12 +188,12 @@ var addProduct = function() {
         {
             type: 'input',
             name: 'deptName',
-            message: 'Department'
+            message: 'Department Name'
         },
         {
             type: 'input',
             name: 'price',
-            message: 'Price US$',
+            message: 'Price',
             validate: function (value) {
                 var valid = !isNaN(parseFloat(value));
                 return valid || 'Please enter a number';
@@ -205,9 +215,9 @@ var addProduct = function() {
             product_name: answer.itemName,
             department_name: answer.deptName,
             price: answer.price,
-            stock_quantity: answer.quantity,
+            stock_quantity: answer.quantity
         }, function (err, res) {
-            console.log('Product added sucessfully!'.inverse.green);
+            console.log('New product added.');
             inquirer.prompt([
                 {
                     type: 'list',
@@ -217,28 +227,22 @@ var addProduct = function() {
                 }
             ]).then(function (data) {
                 switch (data.doNext) {
-                    // if user selects to continue shopping, display products //
+                    // if user selects to continue shopping, display products
                     case 'Add More Inventory':
-                        addProduct();
+                        newProduct();
                         break;
                     case 'Main Menu':
-                        managerView();
+                        welcomeToWork();
                         break;
                     case 'Disconnect':
                         console.log('Goodbye!');
-                        // end server connection // 
+                        // end server connection
                         connection.end();
                         break;
                     default:
                         console.log('something went wrong')
-                } // end switch // 
-            }); // end .then Next //
-        }); // end connection.query insert to products //
-    }); // end .then new product inquirer prompt //
-}; // end newProduct // 
-
-
-
-
-
-
+                } // end switch()
+            }); // end .then() doNext
+        }); // end connection.query insert to products
+    }); // end .then() new product inquirer prompt
+}; // end newProduct()

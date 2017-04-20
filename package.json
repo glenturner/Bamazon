@@ -1,0 +1,27 @@
+{
+  "name": "bamazon",
+  "version": "1.0.0",
+  "description": "var mysql = require(\"mysql\");",
+  "main": "bamazonCustomer.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/glenturner/Bamazon.git"
+  },
+  "author": "Glen Turner",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/glenturner/Bamazon/issues"
+  },
+  "homepage": "https://github.com/glenturner/Bamazon#readme",
+  "dependencies": {
+    "cli-table": "^0.3.1",
+    "colors": "^1.1.2",
+    "console.table": "^0.8.0",
+    "easy-table": "^1.1.0",
+    "inquirer": "^3.0.6",
+    "mysql": "^2.13.0"
+  }
+}
